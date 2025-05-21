@@ -1,0 +1,23 @@
+Funkcje:
+1. Konto uzytkownika
+    - Rejestracja (adres e-mail, haslo*)
+    - Logowanie (adres e-mail, haslo*)
+    - Przypomnienie hasła
+    - Zakladka Konto / Account - z mozliwoscia dodania imienia i nazwiska/ zmiany hasla*
+2. Dodanie zadania
+    - Mozliwosc dodania nowego zadania
+        - Nazwa Zadania
+        - Termin wykonania (deadline)
+        - Priorytet
+        - Lista zadań
+3. Lista zadań
+    - Mozliwosc edycji istniejacego zadania
+        - Zmiana nazwy zadania
+        - Zmiana terminu wykonania
+        - Zmiana priorytetu zadania
+        - Zmiana listy zadań
+        - Usunięcie zadania
+    - Mozliwosc zaznaczenia zadania jako ukończone
+
+
+* Validacja hasła, minimum 8 znaków, znak specjalny.
