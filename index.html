@@ -454,6 +454,187 @@
     </style>
 </head>
 <body>
-    // Main app here //
+        <div class="container">
+        <div class="header">
+            <h1>ZenDo</h1>
+            <p>Twoje narzędzie do zarządzania zadaniami</p>
+        </div>
+
+        <!-- Sekcja autoryzacji -->
+        <div class="auth-section" id="authSection">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Logowanie</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Rejestracja</button>
+                <button class="auth-tab" onclick="switchAuthTab('reset')">Resetuj hasło</button>
+            </div>
+
+            <form class="auth-form active" id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Hasło:</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn">Zaloguj się</button>
+            </form>
+
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label for="registerName">Imię i nazwisko:</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Hasło:</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Potwierdź hasło:</label>
+                    <input type="password" id="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn">Zarejestruj się</button>
+            </form>
+
+            <form class="auth-form" id="resetForm">
+                <div class="form-group">
+                    <label for="resetEmail">Email:</label>
+                    <input type="email" id="resetEmail" required>
+                </div>
+                <button type="submit" class="btn">Wyślij link resetujący</button>
+            </form>
+        </div>
+
+        <!-- Główna aplikacja -->
+        <div class="main-app" id="mainApp">
+            <div class="app-header">
+                <div class="user-info">
+                    <h2>Witaj, <span id="currentUser">Użytkowniku</span>!</h2>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="changePassword()">Zmień hasło</button>
+                    <button class="btn btn-danger" onclick="logout()">Wyloguj</button>
+                </div>
+            </div>
+
+            <div class="lists-section">
+                <div class="lists-sidebar">
+                    <h3>Moje listy</h3>
+                    <div id="listsContainer">
+                        <!-- Listy będą dodawane dynamicznie -->
+                    </div>
+                    <button class="btn" onclick="showNewListModal()" style="width: 100%; margin-top: 20px;">
+                        + Nowa lista
+                    </button>
+                </div>
+
+                <div class="tasks-section">
+                    <div class="tasks-header">
+                        <h3 id="currentListTitle">Wybierz listę</h3>
+                        <div>
+                            <button class="btn" onclick="toggleTaskForm()" id="addTaskBtn" style="display: none;">
+                                + Dodaj zadanie
+                            </button>
+                            <button class="btn btn-secondary" onclick="toggleShareSection()" id="shareListBtn" style="display: none;">
+                                Udostępnij listę
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="task-form" id="taskForm">
+                        <h4 id="taskFormTitle">Dodaj nowe zadanie</h4>
+                        <form id="taskFormElement">
+                            <div class="task-form-row">
+                                <div class="form-group">
+                                    <label for="taskTitle">Tytuł zadania:</label>
+                                    <input type="text" id="taskTitle" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="taskPriority">Priorytet:</label>
+                                    <select id="taskPriority">
+                                        <option value="low">Niski</option>
+                                        <option value="medium">Średni</option>
+                                        <option value="high">Wysoki</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="taskDeadline">Termin wykonania:</label>
+                                    <input type="datetime-local" id="taskDeadline">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="taskDescription">Opis:</label>
+                                <textarea id="taskDescription" rows="3" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; resize: vertical;"></textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button type="submit" class="btn btn-success">Zapisz zadanie</button>
+                                <button type="button" class="btn btn-secondary" onclick="cancelTaskForm()">Anuluj</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="share-section" id="shareSection">
+                        <h4>Udostępnij listę</h4>
+                        <div class="form-group">
+                            <label for="shareEmail">Email użytkownika:</label>
+                            <input type="email" id="shareEmail" placeholder="wprowadź email...">
+                        </div>
+                        <button class="btn" onclick="shareList()">Udostępnij</button>
+                        <div class="shared-users" id="sharedUsers">
+                            <!-- Udostępnieni użytkownicy będą wyświetlani tutaj -->
+                        </div>
+                    </div>
+
+                    <div id="tasksContainer">
+                        <p style="text-align: center; color: #666; margin-top: 50px;">
+                            Wybierz listę z panelu bocznego, aby wyświetlić zadania
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dla nowej listy -->
+    <div class="modal" id="newListModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeNewListModal()">&times;</span>
+            <h3>Utwórz nową listę</h3>
+            <form id="newListForm">
+                <div class="form-group">
+                    <label for="listName">Nazwa listy:</label>
+                    <input type="text" id="listName" required placeholder="np. Praca, Dom, Zakupy...">
+                </div>
+                <button type="submit" class="btn">Utwórz listę</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal zmiany hasła -->
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeChangePasswordModal()">&times;</span>
+            <h3>Zmień hasło</h3>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Obecne hasło:</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Nowe hasło:</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmNewPassword">Potwierdź nowe hasło:</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <button type="submit" class="btn">Zmień hasło</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
