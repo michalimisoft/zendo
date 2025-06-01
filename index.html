@@ -636,5 +636,538 @@
             </form>
         </div>
     </div>
+    <script>
+        // Dane aplikacji przechowywane w pamięci
+        let currentUser = null;
+        let users = [
+            { id: 1, name: 'Diana Holubieva', email: 'diana@example.com', password: 'haslo123' },
+            { id: 2, name: 'Michał Kościelniak', email: 'michal@example.com', password: 'haslo123' },
+            { id: 3, name: 'Dawid Ćwiok', email: 'dawid@example.com', password: 'haslo123' }
+        ];
+        let lists = [
+            { id: 1, name: 'Praca', userId: 1, sharedWith: [2] },
+            { id: 2, name: 'Dom', userId: 1, sharedWith: [] },
+            { id: 3, name: 'Zakupy', userId: 2, sharedWith: [1, 3] }
+        ];
+        let tasks = [
+            { id: 1, listId: 1, title: 'Przygotować prezentację', description: 'Prezentacja o nowych funkcjach aplikacji', priority: 'high', deadline: '2025-06-05T10:00', completed: false },
+            { id: 2, listId: 1, title: 'Code review', description: 'Sprawdzić pull requesty zespołu', priority: 'medium', deadline: '2025-06-02T16:00', completed: false },
+            { id: 3, listId: 2, title: 'Zakupy spożywcze', description: 'Mleko, chleb, jajka', priority: 'low', deadline: '2025-06-01T18:00', completed: true },
+            { id: 4, listId: 2, title: 'Umyć okna', description: 'Okna w salonie i kuchni', priority: 'low', deadline: null, completed: false }
+        ];
+
+        let currentList = null;
+        let editingTask = null;
+
+        // Funkcje autoryzacji
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
+            document.getElementById(tab + 'Form').classList.add('active');
+        }
+
+        function login(email, password) {
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                document.getElementById('currentUser').textContent = user.name;
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                loadUserLists();
+                showNotification('Zalogowano pomyślnie!', 'success');
+            } else {
+                showNotification('Nieprawidłowy email lub hasło', 'error');
+            }
+        }
+
+        function register(name, email, password, confirmPassword) {
+            if (password !== confirmPassword) {
+                showNotification('Hasła nie są zgodne', 'error');
+                return;
+            }
+            
+            if (users.find(u => u.email === email)) {
+                showNotification('Użytkownik o tym emailu już istnieje', 'error');
+                return;
+            }
+
+            const newUser = {
+                id: users.length + 1,
+                name: name,
+                email: email,
+                password: password
+            };
+            
+            users.push(newUser);
+            showNotification('Konto zostało utworzone! Możesz się zalogować.', 'success');
+            switchAuthTab('login');
+        }
+
+        function resetPassword(email) {
+            const user = users.find(u => u.email === email);
+            if (user) {
+                showNotification('Link do resetowania hasła został wysłany na email', 'info');
+            } else {
+                showNotification('Nie znaleziono użytkownika o tym emailu', 'error');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            currentList = null;
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        // Funkcje zarządzania listami
+        function loadUserLists() {
+            const userLists = lists.filter(list => 
+                list.userId === currentUser.id || list.sharedWith.includes(currentUser.id)
+            );
+            
+            const container = document.getElementById('listsContainer');
+            container.innerHTML = '';
+            
+            userLists.forEach(list => {
+                const listElement = document.createElement('div');
+                listElement.className = 'list-item';
+                listElement.onclick = () => selectList(list.id);
+                
+                const isOwner = list.userId === currentUser.id;
+                const ownerName = users.find(u => u.id === list.userId)?.name || 'Nieznany';
+                
+                listElement.innerHTML = `
+                    <div>
+                        <strong>${list.name}</strong>
+                        ${!isOwner ? `<br><small>Udostępniona przez ${ownerName}</small>` : ''}
+                    </div>
+                    <div class="list-actions">
+                        ${isOwner ? `
+                            <button onclick="event.stopPropagation(); editList(${list.id})" title="Edytuj">✏️</button>
+                            <button onclick="event.stopPropagation(); deleteList(${list.id})" title="Usuń">🗑️</button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(listElement);
+            });
+        }
+
+        function selectList(listId) {
+            currentList = lists.find(l => l.id === listId);
+            if (!currentList) return;
+            
+            // Aktualizuj aktywną listę
+            document.querySelectorAll('.list-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // Aktualizuj tytuł i przyciski
+            document.getElementById('currentListTitle').textContent = currentList.name;
+            document.getElementById('addTaskBtn').style.display = 'inline-block';
+            document.getElementById('shareListBtn').style.display = currentList.userId === currentUser.id ? 'inline-block' : 'none';
+            
+            loadTasks();
+        }
+
+        function createList(name) {
+            const newList = {
+                id: lists.length + 1,
+                name: name,
+                userId: currentUser.id,
+                sharedWith: []
+            };
+            
+            lists.push(newList);
+            loadUserLists();
+            closeNewListModal();
+            showNotification('Lista została utworzona!', 'success');
+        }
+
+        function deleteList(listId) {
+            if (confirm('Czy na pewno chcesz usunąć tę listę? Wszystkie zadania zostaną również usunięte.')) {
+                lists = lists.filter(l => l.id !== listId);
+                tasks = tasks.filter(t => t.listId !== listId);
+                
+                if (currentList && currentList.id === listId) {
+                    currentList = null;
+                    document.getElementById('currentListTitle').textContent = 'Wybierz listę';
+                    document.getElementById('addTaskBtn').style.display = 'none';
+                    document.getElementById('shareListBtn').style.display = 'none';
+                    document.getElementById('tasksContainer').innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">Wybierz listę z panelu bocznego, aby wyświetlić zadania</p>';
+                }
+                
+                loadUserLists();
+                showNotification('Lista została usunięta', 'success');
+            }
+        }
+
+        // Funkcje zarządzania zadaniami
+        function loadTasks() {
+            if (!currentList) return;
+            
+            const listTasks = tasks.filter(t => t.listId === currentList.id);
+            const container = document.getElementById('tasksContainer');
+            
+            if (listTasks.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; margin-top: 50px;">Brak zadań na tej liście</p>';
+                return;
+            }
+            
+            // Sortuj zadania: najpierw niezakończone, potem według priorytetu i deadline
+            listTasks.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed - b.completed;
+                
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                    return priorityOrder[b.priority] - priorityOrder[a.priority];
+                }
+                
+                if (a.deadline && b.deadline) {
+                    return new Date(a.deadline) - new Date(b.deadline);
+                }
+                return a.deadline ? -1 : 1;
+            });
+            
+            container.innerHTML = '';
+            
+            listTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = `task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority`;
+                
+                const deadline = task.deadline ? new Date(task.deadline).toLocaleString('pl-PL') : 'Brak terminu';
+                const priorityText = { high: 'Wysoki', medium: 'Średni', low: 'Niski' }[task.priority];
+                
+                taskElement.innerHTML = `
+                    <div class="task-header">
+                        <div>
+                            <div class="task-title">${task.title}</div>
+                            <div class="task-meta">
+                                <span class="priority-badge priority-${task.priority}">${priorityText}</span>
+                                <span>📅 ${deadline}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                    <div class="task-actions">
+                        <button onclick="toggleTaskComplete(${task.id})" class="btn ${task.completed ? 'btn-secondary' : 'btn-success'}">
+                            ${task.completed ? '↩️ Przywróć' : '✅ Zakończ'}
+                        </button>
+                        <button onclick="editTask(${task.id})" class="btn btn-secondary">✏️ Edytuj</button>
+                        <button onclick="deleteTask(${task.id})" class="btn btn-danger">🗑️ Usuń</button>
+                    </div>
+                `;
+                
+                container.appendChild(taskElement);
+            });
+        }
+
+        function createTask(title, description, priority, deadline) {
+            const newTask = {
+                id: tasks.length + 1,
+                listId: currentList.id,
+                title: title,
+                description: description,
+                priority: priority,
+                deadline: deadline,
+                completed: false
+            };
+            
+            tasks.push(newTask);
+            loadTasks();
+            cancelTaskForm();
+            showNotification('Zadanie zostało dodane!', 'success');
+        }
+
+        function updateTask(taskId, title, description, priority, deadline) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.title = title;
+                task.description = description;
+                task.priority = priority;
+                task.deadline = deadline;
+                
+                loadTasks();
+                cancelTaskForm();
+                showNotification('Zadanie zostało zaktualizowane!', 'success');
+            }
+        }
+
+        function deleteTask(taskId) {
+            if (confirm('Czy na pewno chcesz usunąć to zadanie?')) {
+                tasks = tasks.filter(t => t.id !== taskId);
+                loadTasks();
+                showNotification('Zadanie zostało usunięte', 'success');
+            }
+        }
+
+        function toggleTaskComplete(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                loadTasks();
+                showNotification(task.completed ? 'Zadanie zostało zakończone!' : 'Zadanie zostało przywrócone', 'success');
+            }
+        }
+
+        function editTask(taskId) {
+            editingTask = tasks.find(t => t.id === taskId);
+            if (editingTask) {
+                document.getElementById('taskFormTitle').textContent = 'Edytuj zadanie';
+                document.getElementById('taskTitle').value = editingTask.title;
+                document.getElementById('taskDescription').value = editingTask.description || '';
+                document.getElementById('taskPriority').value = editingTask.priority;
+                document.getElementById('taskDeadline').value = editingTask.deadline || '';
+                
+                toggleTaskForm();
+            }
+        }
+
+        // Funkcje UI
+        function toggleTaskForm() {
+            const form = document.getElementById('taskForm');
+            form.classList.toggle('active');
+            
+            if (!form.classList.contains('active')) {
+                cancelTaskForm();
+            }
+        }
+
+        function cancelTaskForm() {
+            document.getElementById('taskForm').classList.remove('active');
+            document.getElementById('taskFormElement').reset();
+            document.getElementById('taskFormTitle').textContent = 'Dodaj nowe zadanie';
+            editingTask = null;
+        }
+
+        function toggleShareSection() {
+            const shareSection = document.getElementById('shareSection');
+            shareSection.classList.toggle('active');
+            
+            if (shareSection.classList.contains('active')) {
+                loadSharedUsers();
+            }
+        }
+
+        function shareList() {
+            const email = document.getElementById('shareEmail').value.trim();
+            if (!email) {
+                showNotification('Podaj email użytkownika', 'error');
+                return;
+            }
+            
+            const user = users.find(u => u.email === email);
+            if (!user) {
+                showNotification('Nie znaleziono użytkownika o tym emailu', 'error');
+                return;
+            }
+            
+            if (user.id === currentUser.id) {
+                showNotification('Nie możesz udostępnić listy samemu sobie', 'error');
+                return;
+            }
+            
+            if (currentList.sharedWith.includes(user.id)) {
+                showNotification('Lista jest już udostępniona temu użytkownikowi', 'error');
+                return;
+            }
+            
+            currentList.sharedWith.push(user.id);
+            document.getElementById('shareEmail').value = '';
+            loadSharedUsers();
+            showNotification(`Lista została udostępniona użytkownikowi ${user.name}`, 'success');
+        }
+
+        function loadSharedUsers() {
+            const container = document.getElementById('sharedUsers');
+            container.innerHTML = '';
+            
+            currentList.sharedWith.forEach(userId => {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'shared-user';
+                    userElement.innerHTML = `
+                        ${user.name}
+                        <button onclick="removeShare(${userId})" style="background: none; border: none; color: white; cursor: pointer; margin-left: 5px;">×</button>
+                    `;
+                    container.appendChild(userElement);
+                }
+            });
+        }
+
+        function removeShare(userId) {
+            currentList.sharedWith = currentList.sharedWith.filter(id => id !== userId);
+            loadSharedUsers();
+            const user = users.find(u => u.id === userId);
+            showNotification(`Udostępnienie zostało usunięte dla ${user.name}`, 'success');
+        }
+
+        function showNewListModal() {
+            document.getElementById('newListModal').classList.add('active');
+        }
+
+        function closeNewListModal() {
+            document.getElementById('newListModal').classList.remove('active');
+            document.getElementById('newListForm').reset();
+        }
+
+        function changePassword() {
+            document.getElementById('changePasswordModal').classList.add('active');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('active');
+            document.getElementById('changePasswordForm').reset();
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            login(email, password);
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            register(name, email, password, confirmPassword);
+        });
+
+        document.getElementById('resetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+            resetPassword(email);
+        });
+
+        document.getElementById('newListForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('listName').value;
+            createList(name);
+        });
+
+        document.getElementById('taskFormElement').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('taskTitle').value;
+            const description = document.getElementById('taskDescription').value;
+            const priority = document.getElementById('taskPriority').value;
+            const deadline = document.getElementById('taskDeadline').value;
+            
+            if (editingTask) {
+                updateTask(editingTask.id, title, description, priority, deadline);
+            } else {
+                createTask(title, description, priority, deadline);
+            }
+        });
+
+        document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (currentPassword !== currentUser.password) {
+                showNotification('Obecne hasło jest nieprawidłowe', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmNewPassword) {
+                showNotification('Nowe hasła nie są zgodne', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showNotification('Nowe hasło musi mieć co najmniej 6 znaków', 'error');
+                return;
+            }
+            
+            currentUser.password = newPassword;
+            // Aktualizuj hasło w tablicy users
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+            }
+            
+            closeChangePasswordModal();
+            showNotification('Hasło zostało zmienione pomyślnie!', 'success');
+        });
+
+        // Zamykanie modali po kliknięciu w tło
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Inicjalizacja aplikacji
+        document.addEventListener('DOMContentLoaded', function() {
+            // Automatyczne logowanie dla demonstracji (można usunąć)
+            setTimeout(() => {
+                showNotification('Witaj w aplikacji ZenDo! Użyj przykładowych danych logowania: diana@example.com / haslo123', 'info');
+            }, 1000);
+        });
+
+        // Sprawdzanie terminów zadań
+        function checkTaskDeadlines() {
+            if (!currentUser) return;
+            
+            const now = new Date();
+            const userTasks = tasks.filter(task => {
+                const list = lists.find(l => l.id === task.listId);
+                return list && (list.userId === currentUser.id || list.sharedWith.includes(currentUser.id));
+            });
+            
+            userTasks.forEach(task => {
+                if (task.deadline && !task.completed) {
+                    const deadline = new Date(task.deadline);
+                    const timeDiff = deadline - now;
+                    const hoursDiff = timeDiff / (1000 * 60 * 60);
+                    
+                    // Powiadomienie 24 godziny przed terminem
+                    if (hoursDiff <= 24 && hoursDiff > 23) {
+                        showNotification(`Przypomnienie: Zadanie "${task.title}" kończy się jutro!`, 'info');
+                    }
+                    
+                    // Powiadomienie po przekroczeniu terminu
+                    if (hoursDiff < 0 && hoursDiff > -1) {
+                        showNotification(`Uwaga: Termin zadania "${task.title}" został przekroczony!`, 'error');
+                    }
+                }
+            });
+        }
+
+        // Sprawdzaj terminy co godzinę
+        setInterval(checkTaskDeadlines, 3600000);
+    </script>
 </body>
 </html>
