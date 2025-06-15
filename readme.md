@@ -40,7 +40,9 @@ Lista zadań umożliwia pełne zarządzanie już istniejącymi zadaniami.
 
 ---
 
-## 🧱 Technologie 
+## 🧱 Technologie
+PHP, JavaScript, CSS
+MySQL - MariaDB
 
 ---
 
