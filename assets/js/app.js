@@ -228,7 +228,9 @@ class ZenDoApp {
 
     async toggleTaskComplete(taskId) {
         try {
-            const response = await this.apiCall('POST', `/tasks/${taskId}/toggle`);
+            const response = await this.apiCall('POST', '/tasks/toggle', {
+                taskId: taskId
+            });
             if (response.success) {
                 this.showNotification(response.message, 'success');
                 this.loadTasks();
@@ -237,6 +239,32 @@ class ZenDoApp {
             }
         } catch (error) {
             this.showNotification('Błąd podczas zmiany statusu zadania', 'error');
+        }
+    }
+
+    async deleteTask(taskId) {
+        if (!confirm('Czy na pewno chcesz usunąć to zadanie?')) {
+            return;
+        }
+
+        try {
+            console.log('Attempting to delete task:', taskId);
+            
+            const response = await this.apiCall('POST', '/tasks/delete', {
+                taskId: taskId
+            });
+
+            console.log('Delete task response:', response);
+
+            if (response.success) {
+                this.showNotification(response.message, 'success');
+                this.loadTasks(); // Odśwież listę zadań
+            } else {
+                this.showNotification(response.message || 'Błąd usuwania zadania', 'error');
+            }
+        } catch (error) {
+            console.error('Delete task error:', error);
+            this.showNotification('Błąd podczas usuwania zadania: ' + error.message, 'error');
         }
     }
 
@@ -319,6 +347,9 @@ class ZenDoApp {
                 <div class="task-actions">
                     <button onclick="app.toggleTaskComplete(${task.id})" class="btn ${task.completed ? 'btn-secondary' : 'btn-success'} btn-small">
                         ${task.completed ? '↩️ Przywróć' : '✅ Zakończ'}
+                    </button>
+                    <button onclick="app.deleteTask(${task.id})" class="btn btn-danger btn-small">
+                        🗑️ Usuń
                     </button>
                 </div>
             `;
@@ -434,6 +465,10 @@ class ZenDoApp {
             url = this.basePath + '/register.php';
         } else if (endpoint === '/auth/change-password') {
             url = this.basePath + '/change_password.php';
+        } else if (endpoint === '/tasks/delete') {
+            url = this.basePath + '/delete_task.php';
+        } else if (endpoint === '/tasks/toggle') {
+            url = this.basePath + '/toggle_task.php';
         }
         
         const config = {
@@ -570,4 +605,8 @@ function toggleTaskForm() {
 
 function cancelTaskForm() {
     app.cancelTaskForm();
+}
+
+function deleteTask(taskId) {
+    app.deleteTask(taskId);
 }
