@@ -4,7 +4,9 @@
 
 class ZenDoApp {
     constructor() {
-        this.apiUrl = '/api';
+        // Automatycznie wykryj ścieżkę bazową aplikacji
+        this.basePath = window.location.pathname.includes('/zendo/') ? '/zendo' : '';
+        this.apiUrl = this.basePath + '/api';
         this.currentUser = null;
         this.currentList = null;
         this.editingTask = null;
@@ -95,6 +97,30 @@ class ZenDoApp {
             this.currentList = null;
             this.showAuthSection();
             this.showNotification('Zostałeś wylogowany', 'info');
+        }
+    }
+
+    async changePassword(currentPassword, newPassword, confirmNewPassword) {
+        try {
+            console.log('Attempting password change...');
+            
+            const response = await this.apiCall('POST', '/auth/change-password', {
+                currentPassword,
+                newPassword,
+                confirmNewPassword
+            });
+
+            console.log('Change password response:', response);
+
+            if (response.success) {
+                this.showNotification(response.message, 'success');
+                this.closeChangePasswordModal();
+            } else {
+                this.showNotification(response.message || 'Błąd zmiany hasła', 'error');
+            }
+        } catch (error) {
+            console.error('Change password error:', error);
+            this.showNotification('Błąd podczas zmiany hasła: ' + error.message, 'error');
         }
     }
 
@@ -363,6 +389,15 @@ class ZenDoApp {
         document.getElementById('newListForm').reset();
     }
 
+    showChangePasswordModal() {
+        document.getElementById('changePasswordModal').classList.add('active');
+    }
+
+    closeChangePasswordModal() {
+        document.getElementById('changePasswordModal').classList.remove('active');
+        document.getElementById('changePasswordForm').reset();
+    }
+
     // === POWIADOMIENIA ===
 
     showNotification(message, type = 'info') {
@@ -391,15 +426,14 @@ class ZenDoApp {
     async apiCall(method, endpoint, data = null) {
         console.log(`API Call: ${method} ${this.apiUrl}${endpoint}`, data);
         
-        // Pobierz ścieżkę bazową aplikacji
-        const basePath = window.location.pathname.includes('/zendo/') ? '/zendo' : '';
-        
-        // Spróbuj bezpośrednie pliki dla autoryzacji
-        let url = basePath + this.apiUrl + endpoint;
+        // Użyj poprawnej ścieżki bazowej
+        let url = this.apiUrl + endpoint;
         if (endpoint === '/auth/login') {
-            url = basePath + '/login.php';
+            url = this.basePath + '/login.php';
         } else if (endpoint === '/auth/register') {
-            url = basePath + '/register.php';
+            url = this.basePath + '/register.php';
+        } else if (endpoint === '/auth/change-password') {
+            url = this.basePath + '/change_password.php';
         }
         
         const config = {
@@ -431,30 +465,6 @@ class ZenDoApp {
             return result;
         } catch (error) {
             console.error('API Error:', error);
-            
-            // Jeśli główne URL nie działa, spróbuj alternatywnych ścieżek
-            const alternativeUrls = [
-                `/zendo${endpoint === '/auth/login' ? '/login.php' : endpoint === '/auth/register' ? '/register.php' : this.apiUrl + endpoint}`,
-                `/ZenDo${endpoint === '/auth/login' ? '/login.php' : endpoint === '/auth/register' ? '/register.php' : this.apiUrl + endpoint}`,
-                endpoint === '/auth/login' ? '/zendo/login.php' : endpoint === '/auth/register' ? '/zendo/register.php' : '/zendo' + this.apiUrl + endpoint
-            ];
-            
-            for (const altUrl of alternativeUrls) {
-                if (altUrl === url) continue; // Skip if same as original
-                
-                try {
-                    console.log(`Trying alternative URL: ${altUrl}`);
-                    const altResponse = await fetch(altUrl, config);
-                    if (altResponse.ok) {
-                        const result = await altResponse.json();
-                        console.log('Alternative URL worked:', result);
-                        return result;
-                    }
-                } catch (altError) {
-                    console.log(`Alternative URL ${altUrl} failed:`, altError.message);
-                }
-            }
-            
             throw error;
         }
     }
@@ -501,6 +511,15 @@ class ZenDoApp {
             this.createTask(title, description, priority, deadline);
         });
 
+        // Formularz zmiany hasła
+        document.getElementById('changePasswordForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            this.changePassword(currentPassword, newPassword, confirmNewPassword);
+        });
+
         // Zamykanie modali po kliknięciu w tło
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
@@ -535,6 +554,14 @@ function showNewListModal() {
 
 function closeNewListModal() {
     app.closeNewListModal();
+}
+
+function showChangePasswordModal() {
+    app.showChangePasswordModal();
+}
+
+function closeChangePasswordModal() {
+    app.closeChangePasswordModal();
 }
 
 function toggleTaskForm() {
