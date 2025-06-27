@@ -163,6 +163,11 @@ body {
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
 }
 
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: translateY(-1px);
+}
+
 .btn-success {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
