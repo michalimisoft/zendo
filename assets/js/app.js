@@ -226,6 +226,54 @@ class ZenDoApp {
         }
     }
 
+    async getTask(taskId) {
+        try {
+            console.log('Getting task details for:', taskId);
+            
+            const response = await this.apiCall('GET', `/get_task?id=${taskId}`);
+            
+            console.log('Get task response:', response);
+            
+            if (response.success) {
+                return response.task;
+            } else {
+                this.showNotification(response.message || 'Błąd pobierania zadania', 'error');
+                return null;
+            }
+        } catch (error) {
+            console.error('Get task error:', error);
+            this.showNotification('Błąd podczas pobierania zadania: ' + error.message, 'error');
+            return null;
+        }
+    }
+
+    async editTask(taskId, title, description, priority, deadline) {
+        try {
+            console.log('Attempting to edit task:', taskId);
+            
+            const response = await this.apiCall('POST', '/edit_task', {
+                taskId: taskId,
+                title,
+                description,
+                priority,
+                deadline
+            });
+
+            console.log('Edit task response:', response);
+
+            if (response.success) {
+                this.showNotification(response.message, 'success');
+                this.loadTasks();
+                this.cancelTaskForm();
+            } else {
+                this.showNotification(response.message || 'Błąd edycji zadania', 'error');
+            }
+        } catch (error) {
+            console.error('Edit task error:', error);
+            this.showNotification('Błąd podczas edycji zadania: ' + error.message, 'error');
+        }
+    }
+
     async toggleTaskComplete(taskId) {
         try {
             const response = await this.apiCall('POST', '/tasks/toggle', {
@@ -258,7 +306,7 @@ class ZenDoApp {
 
             if (response.success) {
                 this.showNotification(response.message, 'success');
-                this.loadTasks(); // Odśwież listę zadań
+                this.loadTasks();
             } else {
                 this.showNotification(response.message || 'Błąd usuwania zadania', 'error');
             }
@@ -266,6 +314,45 @@ class ZenDoApp {
             console.error('Delete task error:', error);
             this.showNotification('Błąd podczas usuwania zadania: ' + error.message, 'error');
         }
+    }
+
+    // === EDYCJA ZADANIA ===
+
+    async startEditTask(taskId) {
+        console.log('Starting edit for task:', taskId);
+        
+        const task = await this.getTask(taskId);
+        if (!task) {
+            return;
+        }
+
+        console.log('Task data loaded:', task);
+
+        this.editingTask = task;
+        
+        // Wypełnij formularz danymi zadania
+        document.getElementById('taskTitle').value = task.title || '';
+        document.getElementById('taskDescription').value = task.description || '';
+        document.getElementById('taskPriority').value = task.priority || 'medium';
+        
+        // Formatuj datę dla input datetime-local
+        if (task.deadline) {
+            const deadlineDate = new Date(task.deadline);
+            const formatted = deadlineDate.toISOString().slice(0, 16);
+            document.getElementById('taskDeadline').value = formatted;
+        } else {
+            document.getElementById('taskDeadline').value = '';
+        }
+
+        // Zmień tytuł formularza i tekst przycisku
+        document.getElementById('taskFormTitle').textContent = 'Edytuj zadanie';
+        const submitBtn = document.getElementById('taskSubmitBtn');
+        if (submitBtn) {
+            submitBtn.textContent = '💾 Zapisz zmiany';
+        }
+        
+        // Pokaż formularz
+        document.getElementById('taskForm').classList.add('active');
     }
 
     // === RENDEROWANIE UI ===
@@ -348,6 +435,9 @@ class ZenDoApp {
                     <button onclick="app.toggleTaskComplete(${task.id})" class="btn ${task.completed ? 'btn-secondary' : 'btn-success'} btn-small">
                         ${task.completed ? '↩️ Przywróć' : '✅ Zakończ'}
                     </button>
+                    <button onclick="app.startEditTask(${task.id})" class="btn btn-secondary btn-small">
+                        ✏️ Edytuj
+                    </button>
                     <button onclick="app.deleteTask(${task.id})" class="btn btn-danger btn-small">
                         🗑️ Usuń
                     </button>
@@ -406,6 +496,13 @@ class ZenDoApp {
         document.getElementById('taskForm').classList.remove('active');
         document.getElementById('taskFormElement').reset();
         document.getElementById('taskFormTitle').textContent = 'Dodaj nowe zadanie';
+        
+        // Przywróć oryginalny tekst przycisku
+        const submitBtn = document.getElementById('taskSubmitBtn');
+        if (submitBtn) {
+            submitBtn.textContent = '💾 Zapisz zadanie';
+        }
+        
         this.editingTask = null;
     }
 
@@ -469,6 +566,10 @@ class ZenDoApp {
             url = this.basePath + '/delete_task.php';
         } else if (endpoint === '/tasks/toggle') {
             url = this.basePath + '/toggle_task.php';
+        } else if (endpoint === '/edit_task') {
+            url = this.basePath + '/edit_task.php';
+        } else if (endpoint.startsWith('/get_task')) {
+            url = this.basePath + '/get_task.php' + endpoint.substring(9);
         }
         
         const config = {
@@ -535,7 +636,7 @@ class ZenDoApp {
             this.createList(name);
         });
 
-        // Formularz zadania
+        // Formularz zadania (obsługuje dodawanie i edycję)
         document.getElementById('taskFormElement').addEventListener('submit', (e) => {
             e.preventDefault();
             const title = document.getElementById('taskTitle').value;
@@ -543,7 +644,13 @@ class ZenDoApp {
             const priority = document.getElementById('taskPriority').value;
             const deadline = document.getElementById('taskDeadline').value;
 
-            this.createTask(title, description, priority, deadline);
+            if (this.editingTask) {
+                // Edycja istniejącego zadania
+                this.editTask(this.editingTask.id, title, description, priority, deadline);
+            } else {
+                // Tworzenie nowego zadania
+                this.createTask(title, description, priority, deadline);
+            }
         });
 
         // Formularz zmiany hasła
@@ -609,4 +716,8 @@ function cancelTaskForm() {
 
 function deleteTask(taskId) {
     app.deleteTask(taskId);
+}
+
+function startEditTask(taskId) {
+    app.startEditTask(taskId);
 }
