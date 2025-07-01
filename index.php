@@ -229,14 +229,14 @@ try {
                                          placeholder="Dodaj szczegóły zadania (opcjonalne)"></textarea>
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-success">💾 Zapisz zadanie</button>
+                                <button type="submit" class="btn btn-success" id="taskSubmitBtn">💾 Zapisz zadanie</button>
                                 <button type="button" class="btn btn-secondary" onclick="cancelTaskForm()">
                                     ❌ Anuluj
                                 </button>
                             </div>
                         </form>
                     </div>
-
+                    
                     <!-- Sekcja udostępniania -->
                     <div class="share-section" id="shareSection">
                         <h4>👥 Udostępnij listę</h4>
