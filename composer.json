@@ -1,0 +1,21 @@
+{
+    "name": "zendo/task-manager",
+    "description": "ZenDo Task Management Application",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "classmap": [
+            "classes/",
+            "config/"
+        ]
+    },
+    "scripts": {
+        "test": "phpunit tests/",
+        "test-watch": "phpunit tests/ --testdox"
+    }
+}

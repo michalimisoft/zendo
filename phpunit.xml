@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    colors="true"
+    verbose="true"
+    bootstrap="tests/bootstrap.php"
+    testdox="true">
+    
+    <testsuites>
+        <testsuite name="ZenDo Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    
+    <php>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_NAME" value="zendo_test"/>
+        <env name="DB_USER" value="root"/>
+        <env name="DB_PASS" value="root"/>
+    </php>
+</phpunit>
