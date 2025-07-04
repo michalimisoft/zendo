@@ -477,6 +477,97 @@ body {
     font-weight: 500;
 }
 
+/* Dodatkowe style dla edycji zadań */
+
+/* Wyróżnienie formularza w trybie edycji */
+.task-form.editing {
+    border: 2px solid #667eea;
+    background: linear-gradient(135deg, #e8f0fe 0%, #f3e5f5 100%);
+}
+
+.task-form.editing h4 {
+    color: #667eea;
+    font-weight: 700;
+}
+
+/* Przycisk edycji zadania */
+.btn-edit {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    transform: translateY(-1px);
+}
+
+/* Animacja dla przycisku edycji */
+.task-item .btn-edit {
+    position: relative;
+    overflow: hidden;
+}
+
+.task-item .btn-edit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.task-item:hover .btn-edit::before {
+    left: 100%;
+}
+
+/* Dodatkowa ikona dla zadań w edycji */
+.task-item.editing {
+    border-left-color: #667eea;
+    position: relative;
+}
+
+.task-item.editing::after {
+    content: '✏️';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2rem;
+    opacity: 0.7;
+}
+
+/* Lepsze responsywne układanie przycisków akcji */
+@media (max-width: 768px) {
+    .task-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .task-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Hover effect dla całego zadania */
+.task-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Smooth transitions */
+.task-item,
+.task-actions .btn {
+    transition: all 0.3s ease;
+}
+
+/* Focus states for better accessibility */
+.task-actions .btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
 /* Znaczniki priorytetów */
 .priority-badge {
     padding: 4px 8px;
