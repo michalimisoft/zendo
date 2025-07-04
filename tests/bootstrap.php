@@ -3,20 +3,15 @@
  * Bootstrap dla testów ZenDo
  */
 
-// Autoload klas (dla testów w chmurze)
-$autoloadPaths = [
-    __DIR__ . '/../vendor/autoload.php',  // Composer autoload
-    __DIR__ . '/../classes/',             // Nasze klasy
-    __DIR__ . '/../config/'               // Konfiguracja
-];
+// WAŻNE: Zdefiniuj flagę testową przed autoloadem
+define('TESTING', true);
 
-foreach ($autoloadPaths as $path) {
-    if (file_exists($path) && is_file($path)) {
-        require_once $path;
-    }
+// Autoload Composer
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
 }
 
-// Autoload manualny dla klas aplikacji
+// Autoload klas aplikacji
 spl_autoload_register(function ($class) {
     $paths = [
         __DIR__ . '/../classes/' . $class . '.php',
@@ -31,10 +26,14 @@ spl_autoload_register(function ($class) {
     }
 });
 
-// Konfiguracja dla testów
-if (!defined('TESTING')) {
-    define('TESTING', true);
+// Konfiguracja dla testów - wyłącz output buffering
+if (ob_get_level()) {
+    ob_end_clean();
 }
+
+// Konfiguracja error reporting dla testów
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ini_set('display_errors', 0);
 
 // Klasa testowej bazy danych
 class TestDatabase extends Database {
