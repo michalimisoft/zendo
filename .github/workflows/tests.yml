@@ -123,7 +123,7 @@ jobs:
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
           echo "✅ SUKCES: ZenDo zostało pomyślnie wdrożone na serwer produkcyjny!"
-          echo "🔗 Sprawdź: https://twoja-domena.com"
+          echo "🔗 Sprawdź: https://zendo.n3t.it"
         else
           echo "❌ BŁĄD: Wdrożenie nie powiodło się."
         fi

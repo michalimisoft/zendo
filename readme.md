@@ -1,6 +1,6 @@
 # ZenDo – Aplikacja do listy zadań
 
-[![Tests](https://github.com/michalimisoft/zendo/workflows/ZenDo%20Tests/badge.svg)](https://github.com/michalimisoft/zendo/actions)
+[![Deploy](https://github.com/michalimisoft/zendo/workflows/ZenDo%20CI/CD%20Pipeline/badge.svg)](https://github.com/michalimisoft/zendo/actions)
 
 ZenDo to nowoczesna i intuicyjna aplikacja webowa umożliwiająca zarządzanie zadaniami i organizację codziennych obowiązków. Skupiona na prostocie i efektywności, pozwala użytkownikom tworzyć, edytować i śledzić postęp zadań w przyjaznym środowisku.
 

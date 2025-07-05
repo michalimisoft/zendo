@@ -88,7 +88,7 @@ try {
         <!-- Header -->
         <div class="header">
             <h1>ZenDo</h1>
-            <p>Twoje narzędzie do zarządzania zadaniami</p>
+            <p>Twoje narzędzie do zarządzania zadaniami - v1.0</p>
         </div>
 
         <!-- Sekcja autoryzacji -->
