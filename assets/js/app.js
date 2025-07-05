@@ -552,24 +552,54 @@ class ZenDoApp {
     // === POMOCNICZE FUNKCJE ===
 
     async apiCall(method, endpoint, data = null) {
-        console.log(`API Call: ${method} ${this.apiUrl}${endpoint}`, data);
+        console.log(`API Call: ${method} ${endpoint}`, data);
         
-        // Użyj poprawnej ścieżki bazowej
-        let url = this.apiUrl + endpoint;
-        if (endpoint === '/auth/login') {
-            url = this.basePath + '/login.php';
-        } else if (endpoint === '/auth/register') {
-            url = this.basePath + '/register.php';
-        } else if (endpoint === '/auth/change-password') {
-            url = this.basePath + '/change_password.php';
-        } else if (endpoint === '/tasks/delete') {
-            url = this.basePath + '/delete_task.php';
-        } else if (endpoint === '/tasks/toggle') {
-            url = this.basePath + '/toggle_task.php';
-        } else if (endpoint === '/edit_task') {
-            url = this.basePath + '/edit_task.php';
-        } else if (endpoint.startsWith('/get_task')) {
-            url = this.basePath + '/get_task.php' + endpoint.substring(9);
+        // Mapowanie endpointów na odpowiednie pliki PHP
+        let url = '';
+        
+        switch (endpoint) {
+            case '/auth/login':
+                url = this.basePath + '/login.php';
+                break;
+            case '/auth/register':
+                url = this.basePath + '/register.php';
+                break;
+            case '/auth/change-password':
+                url = this.basePath + '/change_password.php';
+                break;
+            case '/auth/user':
+                url = this.basePath + '/auth_user.php';
+                break;
+            case '/lists':
+                url = this.basePath + '/lists.php';
+                break;
+            case '/tasks':
+                url = this.basePath + '/tasks.php';
+                break;
+            case '/tasks/toggle':
+                url = this.basePath + '/tasks.php';
+                if (data) data.toggle = true;
+                break;
+            case '/tasks/delete':
+                url = this.basePath + '/tasks.php';
+                method = 'DELETE';
+                break;
+            case '/edit_task':
+                url = this.basePath + '/tasks.php';
+                method = 'PUT';
+                break;
+            default:
+                // Obsługa dynamicznych endpointów
+                if (endpoint.startsWith('/lists/')) {
+                    const listId = endpoint.split('/')[2];
+                    url = this.basePath + '/get_list.php?id=' + listId;
+                } else if (endpoint.startsWith('/get_task')) {
+                    url = this.basePath + '/get_task.php' + endpoint.substring(9);
+                } else if (endpoint.startsWith('/tasks?')) {
+                    url = this.basePath + '/tasks.php' + endpoint.substring(6);
+                } else {
+                    throw new Error('Nieznany endpoint: ' + endpoint);
+                }
         }
         
         const config = {
@@ -581,7 +611,7 @@ class ZenDoApp {
             credentials: 'same-origin'
         };
 
-        if (data) {
+        if (data && method !== 'GET') {
             config.body = JSON.stringify(data);
         }
 

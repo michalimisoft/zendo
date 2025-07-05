@@ -1,4 +1,4 @@
-name: ZenDo Tests
+name: ZenDo CI/CD Pipeline
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # JOB 1: Uruchom testy
   test:
     runs-on: ubuntu-latest
     
@@ -29,7 +30,6 @@ jobs:
       with:
         php-version: '8.1'
         extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql
-        coverage: none
 
     - name: Install Composer dependencies
       run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -49,6 +49,81 @@ jobs:
     - name: Run PHPUnit tests
       run: vendor/bin/phpunit tests/ --testdox
 
-    - name: Test results
-      if: always()
-      run: echo "Tests completed!"
+    - name: ✅ Tests passed!
+      run: echo "All tests passed successfully! Ready for deployment."
+
+  # JOB 2: Wdrażanie (tylko po pomyślnych testach i tylko na main branch)
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🚀 Prepare files for deployment
+      run: |
+        echo "Preparing deployment package..."
+        
+        # Utwórz folder deployment
+        mkdir -p deployment
+        
+        # Kopiuj wszystkie pliki OPRÓCZ config i tests
+        rsync -av --progress . deployment/ \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude 'tests' \
+          --exclude 'config' \
+          --exclude 'vendor' \
+          --exclude 'composer.json' \
+          --exclude 'composer.lock' \
+          --exclude 'phpunit.xml' \
+          --exclude '.gitignore' \
+          --exclude 'readme.md' \
+          --exclude 'deployment'
+        
+        # Pokaż co zostanie wysłane
+        echo "Files to be deployed:"
+        find deployment -type f | head -20
+
+    - name: 📦 Deploy to Production Server via FTP
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./deployment/
+        server-dir: ${{ secrets.FTP_SERVER_DIR }}
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/tests/**
+          **/config/**
+          **/.env
+          **/composer.json
+          **/composer.lock
+          **/phpunit.xml
+
+    - name: 🎉 Deployment completed
+      run: |
+        echo "🚀 Deployment to production completed successfully!"
+        echo "📅 Deployed at: $(date)"
+        echo "📝 Commit: ${{ github.sha }}"
+
+  # JOB 3: Powiadomienie o wdrożeniu (opcjonalne)
+  notify:
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    if: always() && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📧 Send deployment notification
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ SUKCES: ZenDo zostało pomyślnie wdrożone na serwer produkcyjny!"
+          echo "🔗 Sprawdź: https://twoja-domena.com"
+        else
+          echo "❌ BŁĄD: Wdrożenie nie powiodło się."
+        fi

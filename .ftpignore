@@ -1,0 +1,17 @@
+# Pliki i foldery do pominięcia przy wdrażaniu
+.git/
+.github/
+tests/
+config/
+vendor/
+node_modules/
+composer.json
+composer.lock
+phpunit.xml
+.gitignore
+.ftpignore
+readme.md
+*.log
+*.tmp
+.env
+.env.local

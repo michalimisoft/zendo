@@ -10,21 +10,30 @@ define('APP_NAME', 'ZenDo');
 define('APP_VERSION', '1.0.0');
 define('BASE_URL', '/');
 
-// Autoload klas (w przypadku braku Composer)
+// Poprawiony autoloader klas
 spl_autoload_register(function ($class) {
     $paths = [
-        'classes/',
-        'config/'
+        __DIR__ . '/classes/' . $class . '.php',
+        __DIR__ . '/classes/' . strtolower($class) . '.php',
+        __DIR__ . '/config/' . $class . '.php',
+        __DIR__ . '/config/' . strtolower($class) . '.php'
     ];
     
-    foreach ($paths as $path) {
-        $file = __DIR__ . '/' . $path . $class . '.php';
+    foreach ($paths as $file) {
         if (file_exists($file)) {
             require_once $file;
             return;
         }
     }
+    
+    // Debug - pokaż co próbujemy załadować
+    error_log("Autoloader: Nie można znaleźć klasy '$class'. Sprawdzono ścieżki: " . implode(', ', $paths));
 });
+
+// Test autoloadera - sprawdź czy klasy są dostępne
+if (!class_exists('Database')) {
+    die('Błąd: Klasa Database nie została znaleziona. Sprawdź czy plik config/database.php istnieje.');
+}
 
 // Inicjalizacja bazy danych i klas
 try {
@@ -38,7 +47,7 @@ try {
 try {
     $db->query("SELECT 1");
 } catch (Exception $e) {
-    die('Błąd połączenia z bazą danych. Sprawdź konfigurację w config/database.php');
+    die('Błąd połączenia z bazą danych. Sprawdź konfigurację w config/database.php. Błąd: ' . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
